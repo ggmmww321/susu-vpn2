@@ -1,0 +1,119 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 设置 Flutter 环境
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.6'
+        channel: 'stable'
+        
+    - name: 设置 Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: 安装 Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: 'platforms;android-34,build-tools;34.0.0,cmdline-tools;latest,platform-tools'
+        
+    - name: 接受 Android 许可证
+      run: yes | sdkmanager --licenses || true
+        
+    - name: 显示环境信息
+      run: |
+        echo "Flutter 版本:"
+        flutter --version
+        echo ""
+        echo "Android SDK:"
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+        
+    - name: 下载 v2ray 核心
+      run: |
+        mkdir -p android/app/src/main/jniLibs/arm64-v8a
+        mkdir -p android/app/src/main/jniLibs/armeabi-v7a
+        mkdir -p android/app/src/main/assets
+        
+        echo "下载 v2ray 二进制..."
+        V2RAY_VERSION="5.10.1"
+        BASE_URL="https://github.com/v2fly/v2ray-core/releases/download/v$V2RAY_VERSION"
+        
+        # arm64-v8a
+        curl -L -o v2ray-arm64.zip "$BASE_URL/v2ray-android-arm64-v8a.zip"
+        unzip -j v2ray-arm64.zip "*/v2ray" -d ./temp-arm64
+        mv ./temp-arm64/v2ray android/app/src/main/jniLibs/arm64-v8a/libv2ray.so
+        rm -rf v2ray-arm64.zip ./temp-arm64
+        
+        # armeabi-v7a
+        curl -L -o v2ray-arm32.zip "$BASE_URL/v2ray-android-arm32-v7a.zip"
+        unzip -j v2ray-arm32.zip "*/v2ray" -d ./temp-arm32
+        mv ./temp-arm32/v2ray android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
+        rm -rf v2ray-arm32.zip ./temp-arm32
+        
+        # 下载 GeoIP/GeoSite
+        curl -L -o android/app/src/main/assets/geoip.dat \
+          "https://github.com/v2fly/geoip/releases/latest/download/geoip.dat"
+        curl -L -o android/app/src/main/assets/geosite.dat \
+          "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
+        
+        echo "v2ray 核心下载完成"
+        
+    - name: 安装 Flutter 依赖
+      run: |
+        flutter pub get
+        flutter pub run build_runner build --delete-conflicting-outputs || true
+        
+    - name: 构建 APK
+      run: |
+        flutter build apk --release --split-per-abi
+        
+    - name: 上传 APK 工件
+      uses: actions/upload-artifact@v4
+      with:
+        name: susu-vpn-apks
+        path: build/app/outputs/apk/release/
+        retention-days: 90
+        
+    - name: 生成构建报告
+      run: |
+        echo "## 速连VPN2 构建报告" >> $GITHUB_STEP_SUMMARY
+        echo "**构建时间:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "**Flutter 版本:** $(flutter --version | grep -oP 'Flutter \K[^\s]+')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 生成的 APK 文件:" >> $GITHUB_STEP_SUMMARY
+        echo "- **app-arm64-v8a-release.apk** - 现代手机 (arm64)" >> $GITHUB_STEP_SUMMARY
+        echo "- **app-armeabi-v7a-release.apk** - 旧手机 (32位)" >> $GITHUB_STEP_SUMMARY
+        echo "- **app-x86_64-release.apk** - 模拟器" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 文件大小:" >> $GITHUB_STEP_SUMMARY
+        ls -lh build/app/outputs/apk/release/*.apk | while read line; do
+          echo "- $line" >> $GITHUB_STEP_SUMMARY
+        done
+        
+    - name: 创建 Release (仅限主分支推送)
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/app/outputs/apk/release/*.apk
+        name: "速连VPN2 v1.0.0"
+        tag_name: v1.0.0
+        generate_release_notes: true
+        draft: false
+        prerelease: false

@@ -1,0 +1,19 @@
+# Build
+build/
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Android
+*.apk
+*.aab
+local.properties
+.gradle/

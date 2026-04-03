@@ -1,0 +1,50 @@
+# 速连VPN2 - 直接执行这些命令
+
+## 第一步：Git 初始化（已完成）
+✓ Git 仓库已初始化在：C:/Users/m/WorkBuddy/20260403085409/susu_vpn/.git/
+
+## 第二步：提交代码
+运行以下命令：
+
+### 命令1：添加所有文件
+C:\Program Files\Git\bin\git.exe add .
+
+### 命令2：提交更改  
+C:\Program Files\Git\bin\git.exe commit -m "Initial commit: Susu VPN2 app"
+
+## 第三步：检查 GitHub CLI
+### 命令3：检查是否安装
+gh --version
+
+如果未安装：
+1. 下载：https://cli.github.com/
+2. 安装后运行：gh auth login
+
+## 第四步：创建 GitHub 仓库
+### 命令4：创建仓库（将 YOUR_USERNAME 替换为你的用户名）
+gh repo create susu-vpn2 --public --source=. --remote=origin --push
+
+如果失败，手动创建：
+1. 访问：https://github.com/new
+2. 创建仓库：susu-vpn2
+3. 运行以下命令：
+
+C:\Program Files\Git\bin\git.exe remote add origin https://github.com/YOUR_USERNAME/susu-vpn2.git
+C:\Program Files\Git\bin\git.exe branch -M main
+C:\Program Files\Git\bin\git.exe push -u origin main
+
+## 第五步：等待构建
+1. 访问你的仓库：https://github.com/YOUR_USERNAME/susu-vpn2
+2. 点击 "Actions" 标签
+3. 等待 5-10 分钟
+4. 在 "Releases" 下载 APK
+
+## 最简单路径
+直接复制粘贴这些命令到 PowerShell：
+
+# 添加并提交
+C:\Program Files\Git\bin\git.exe add .
+C:\Program Files\Git\bin\git.exe commit -m "Initial commit"
+
+# 创建 GitHub 仓库（需要已安装 gh 并登录）
+gh repo create susu-vpn2 --public --source=. --remote=origin --push
