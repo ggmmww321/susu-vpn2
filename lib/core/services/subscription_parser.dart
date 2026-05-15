@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import '../models/server_node.dart';
+import '../../models/server_node.dart';
 
 /// 订阅解析服务
 /// 支持 Base64 编码的订阅内容
