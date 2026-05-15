@@ -57,14 +57,14 @@ jobs:
         
         # arm64-v8a
         curl -L -o v2ray-arm64.zip "$BASE_URL/v2ray-android-arm64-v8a.zip"
-        unzip -j v2ray-arm64.zip "*/v2ray" -d ./temp-arm64
-        mv ./temp-arm64/v2ray android/app/src/main/jniLibs/arm64-v8a/libv2ray.so
+        unzip -o v2ray-arm64.zip -d ./temp-arm64
+        find ./temp-arm64 -name "v2ray" -type f -exec mv {} android/app/src/main/jniLibs/arm64-v8a/libv2ray.so \;
         rm -rf v2ray-arm64.zip ./temp-arm64
         
         # armeabi-v7a
         curl -L -o v2ray-arm32.zip "$BASE_URL/v2ray-android-arm32-v7a.zip"
-        unzip -j v2ray-arm32.zip "*/v2ray" -d ./temp-arm32
-        mv ./temp-arm32/v2ray android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
+        unzip -o v2ray-arm32.zip -d ./temp-arm32
+        find ./temp-arm32 -name "v2ray" -type f -exec mv {} android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so \;
         rm -rf v2ray-arm32.zip ./temp-arm32
         
         # 下载 GeoIP/GeoSite
@@ -74,6 +74,8 @@ jobs:
           "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
         
         echo "v2ray 核心下载完成"
+        ls -lh android/app/src/main/jniLibs/*/libv2ray.so || true
+        ls -lh android/app/src/main/assets/*.dat || true
         
     - name: 安装 Flutter 依赖
       run: |
