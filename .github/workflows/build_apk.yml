@@ -32,7 +32,7 @@ jobs:
     - name: 安装 Android SDK
       uses: android-actions/setup-android@v3
       with:
-        packages: 'platforms;android-34,build-tools;34.0.0,cmdline-tools;latest,platform-tools'
+        packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
         
     - name: 接受 Android 许可证
       run: yes | sdkmanager --licenses || true
