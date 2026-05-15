@@ -27,7 +27,19 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final serverProvider = context.read<ServerProvider>();
       if (serverProvider.nodes.isEmpty) {
-        serverProvider.refreshSubscription();
+        serverProvider.refreshSubscription().then((_) {
+          // 检查是否有错误
+          if (serverProvider.updateStatus == UpdateStatus.error && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(serverProvider.statusMessage),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+        });
       }
     });
   }
@@ -101,6 +113,46 @@ class _HomeTab extends StatelessWidget {
           children: [
             _buildTopBar(context),
             const SizedBox(height: 32),
+            // VPN错误提示
+            Consumer<VpnProvider>(
+              builder: (context, vpn, _) {
+                if (vpn.status == VpnStatus.error && vpn.errorMessage.isNotEmpty) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            vpn.errorMessage,
+                            style: const TextStyle(
+                              color: AppColors.error,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: AppColors.error, size: 18),
+                          onPressed: () {
+                            // 清除错误状态
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             const StatusCard(),
             const SizedBox(height: 32),
             const ConnectButton(),

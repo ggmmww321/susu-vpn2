@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/providers/vpn_provider.dart';
 import '../../../core/providers/server_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/app_logger.dart';
 
 class ConnectButton extends StatefulWidget {
   const ConnectButton({super.key});
@@ -142,10 +144,12 @@ class _ConnectButtonState extends State<ConnectButton>
     if (vpn.isConnecting || vpn.status == VpnStatus.disconnecting) return;
 
     if (vpn.isConnected) {
+      AppLogger.vpn('用户点击断开连接');
       vpn.disconnect();
     } else {
       final node = server.selectedNode;
       if (node == null) {
+        AppLogger.w('未选择节点，无法连接');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('请先选择一个服务器'),
@@ -155,6 +159,25 @@ class _ConnectButtonState extends State<ConnectButton>
         );
         return;
       }
+      
+      // 检查订阅地址是否配置
+      try {
+        final box = Hive.box('settings');
+        final subscriptionUrl = box.get('subscriptionUrl', defaultValue: '') as String;
+        if (subscriptionUrl.toString().trim().isEmpty && server.nodes.isEmpty) {
+          AppLogger.w('未配置订阅地址且无节点');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('请先在设置中配置订阅地址'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      } catch (_) {}
+      
+      AppLogger.vpn('用户点击连接按钮');
       vpn.connect(node);
     }
   }

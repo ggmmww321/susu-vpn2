@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/server_node.dart';
 import '../services/v2ray_config_builder.dart';
+import '../utils/app_logger.dart';
 
 enum VpnStatus {
   disconnected,
@@ -119,8 +120,13 @@ class VpnProvider extends ChangeNotifier {
   }
 
   Future<void> connect(ServerNode node) async {
+    AppLogger.vpn('尝试连接节点: ${node.name} (${node.host}:${node.port})');
+    
     if (_status == VpnStatus.connecting || _status == VpnStatus.connected) {
+      AppLogger.vpn('先断开现有连接');
       await disconnect();
+      // 等待断开完成
+      await Future.delayed(const Duration(milliseconds: 500));
     }
 
     _status = VpnStatus.connecting;
@@ -130,30 +136,48 @@ class VpnProvider extends ChangeNotifier {
 
     try {
       // 生成V2Ray配置
+      AppLogger.d('生成V2Ray配置');
       final config = V2rayConfigBuilder.toJsonString(node);
 
-      // 调用Android原生VPN Service
+      // 调用Android原生VPN Service，添加超时处理
+      AppLogger.vpn('启动VPN服务...');
       final result = await _vpnChannel.invokeMethod('startVpn', {
         'config': config,
         'nodeName': node.name,
         'host': node.host,
         'port': node.port,
-      });
+      }).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('连接超时，请检查网络或节点状态');
+        },
+      );
 
       if (result == false) {
+        AppLogger.e('启动VPN服务失败');
         _status = VpnStatus.error;
         _errorMessage = '启动VPN服务失败';
         _currentNode = null;
         notifyListeners();
+      } else {
+        AppLogger.vpn('VPN服务启动成功');
       }
     } on PlatformException catch (e) {
+      AppLogger.e('PlatformException: ${e.message}', e);
       _status = VpnStatus.error;
       _errorMessage = e.message ?? '连接失败';
       _currentNode = null;
       notifyListeners();
-    } catch (e) {
+    } on TimeoutException catch (_) {
+      AppLogger.e('连接超时');
       _status = VpnStatus.error;
-      _errorMessage = e.toString();
+      _errorMessage = '连接超时，请检查网络或节点状态';
+      _currentNode = null;
+      notifyListeners();
+    } catch (e) {
+      AppLogger.e('连接异常: $e', e);
+      _status = VpnStatus.error;
+      _errorMessage = '连接失败: ${e.toString()}';
       _currentNode = null;
       notifyListeners();
     }

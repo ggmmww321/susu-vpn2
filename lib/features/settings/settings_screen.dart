@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/providers/settings_provider.dart';
+import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_theme.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -16,6 +18,9 @@ class SettingsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
+              const _SectionHeader(title: '订阅设置'),
+              _SubscriptionUrlTile(),
+              const SizedBox(height: 20),
               const _SectionHeader(title: '连接设置'),
               _SettingsCard(children: [
                 _SwitchTile(
@@ -268,6 +273,116 @@ class _IconBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: color, size: 18),
+    );
+  }
+}
+
+class _SubscriptionUrlTile extends StatefulWidget {
+  const _SubscriptionUrlTile();
+
+  @override
+  State<_SubscriptionUrlTile> createState() => _SubscriptionUrlTileState();
+}
+
+class _SubscriptionUrlTileState extends State<_SubscriptionUrlTile> {
+  String _currentUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUrl();
+  }
+
+  Future<void> _loadCurrentUrl() async {
+    try {
+      final box = Hive.box('settings');
+      setState(() {
+        _currentUrl = box.get('subscriptionUrl', defaultValue: '') as String;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _showEditDialog() async {
+    final controller = TextEditingController(text: _currentUrl);
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.bgCard,
+        title: const Text(
+          '配置订阅地址',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: const InputDecoration(
+            hintText: '请输入订阅链接',
+            hintStyle: TextStyle(color: AppColors.textSecondary),
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('保存', style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.trim().isNotEmpty) {
+      await SubscriptionService.setSubscriptionUrl(result);
+      setState(() {
+        _currentUrl = result.trim();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('订阅地址已保存'),
+            backgroundColor: AppColors.connected,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsCard(
+      children: [
+        ListTile(
+          leading: const _IconBadge(
+            icon: Icons.link_rounded,
+            color: AppColors.primary,
+          ),
+          title: const Text(
+            '订阅地址',
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 15),
+          ),
+          subtitle: Text(
+            _currentUrl.isEmpty ? '点击配置订阅链接' : _currentUrl.length > 30
+                ? '${_currentUrl.substring(0, 30)}...'
+                : _currentUrl,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: const Icon(
+            Icons.edit_rounded,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
+          onTap: _showEditDialog,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        ),
+      ],
     );
   }
 }

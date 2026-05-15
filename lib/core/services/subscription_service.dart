@@ -1,22 +1,51 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:hive_flutter/hive_flutter.dart';
 import '../services/subscription_parser.dart';
 import '../../models/server_node.dart';
+import '../utils/app_logger.dart';
 
 class SubscriptionService {
-  // 订阅地址（内置，不对外暴露）
-  static const String _subscriptionUrl =
-      'https://mark-35w.pages.dev/sub?token=999edc1ac844fff7906123405321e24c';
+  // 默认订阅地址（可通过设置修改）
+  static const String _defaultSubscriptionUrl = '';
 
   static const Duration _timeout = Duration(seconds: 15);
 
+  /// 获取订阅地址（从本地存储读取）
+  static String _getSubscriptionUrl() {
+    try {
+      final box = Hive.box('settings');
+      final url = box.get('subscriptionUrl', defaultValue: _defaultSubscriptionUrl);
+      return url.toString().trim();
+    } catch (_) {
+      return _defaultSubscriptionUrl;
+    }
+  }
+
+  /// 设置订阅地址
+  static Future<void> setSubscriptionUrl(String url) async {
+    try {
+      final box = Hive.box('settings');
+      await box.put('subscriptionUrl', url.trim());
+    } catch (_) {}
+  }
+
   /// 从订阅地址拉取并解析节点列表
   static Future<List<ServerNode>> fetchNodes() async {
+    final subscriptionUrl = _getSubscriptionUrl();
+    
+    if (subscriptionUrl.isEmpty) {
+      AppLogger.e('订阅地址未配置');
+      throw Exception('请先在设置中配置订阅地址');
+    }
+
+    AppLogger.subscription('开始获取订阅: $subscriptionUrl');
+
     try {
       final response = await http
           .get(
-            Uri.parse(_subscriptionUrl),
+            Uri.parse(subscriptionUrl),
             headers: {
               'User-Agent': 'v2rayN/6.0',
               'Accept': '*/*',
@@ -26,16 +55,22 @@ class SubscriptionService {
 
       if (response.statusCode == 200) {
         String body = response.body;
+        AppLogger.subscription('订阅请求成功，开始解析');
         List<ServerNode> nodes = SubscriptionParser.parse(body);
+        AppLogger.subscription('解析完成，共 ${nodes.length} 个节点');
         return nodes;
       } else {
+        AppLogger.e('订阅请求失败: HTTP ${response.statusCode}');
         throw Exception('订阅请求失败: HTTP ${response.statusCode}');
       }
     } on SocketException {
+      AppLogger.e('网络连接失败');
       throw Exception('网络连接失败，请检查网络设置');
     } on HttpException {
+      AppLogger.e('HTTP请求异常');
       throw Exception('HTTP请求异常');
     } catch (e) {
+      AppLogger.e('获取订阅失败: $e');
       throw Exception('获取订阅失败: $e');
     }
   }
