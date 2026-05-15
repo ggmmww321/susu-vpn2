@@ -52,6 +52,10 @@ android {
         multiDexEnabled true
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     buildTypes {
         release {
             signingConfig signingConfigs.debug
