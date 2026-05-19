@@ -114,4 +114,7 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-service:2.7.0'
+    
+    // 添加 Play Core 库以支持 Flutter deferred components
+    implementation 'com.google.android.play:core:1.10.3'
 }
