@@ -84,7 +84,7 @@ jobs:
         
     - name: 构建 APK
       run: |
-        flutter build apk --release --split-per-abi -v
+        flutter build apk --release --split-per-abi --flavor production -v
         
     - name: 检查 APK 文件
       run: |
@@ -98,7 +98,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: susu-vpn-apks
-        path: build/app/outputs/apk/release/
+        path: build/app/outputs/apk/production/release/*.apk
         retention-days: 90
         
     - name: 生成构建报告
@@ -108,12 +108,12 @@ jobs:
         echo "**Flutter 版本:** $(flutter --version | grep -oP 'Flutter \K[^\s]+')" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 生成的 APK 文件:" >> $GITHUB_STEP_SUMMARY
-        echo "- **app-arm64-v8a-release.apk** - 现代手机 (arm64)" >> $GITHUB_STEP_SUMMARY
-        echo "- **app-armeabi-v7a-release.apk** - 旧手机 (32位)" >> $GITHUB_STEP_SUMMARY
-        echo "- **app-x86_64-release.apk** - 模拟器" >> $GITHUB_STEP_SUMMARY
+        echo "- **app-arm64-v8a-production-release.apk** - 现代手机 (arm64)" >> $GITHUB_STEP_SUMMARY
+        echo "- **app-armeabi-v7a-production-release.apk** - 旧手机 (32位)" >> $GITHUB_STEP_SUMMARY
+        echo "- **app-x86_64-production-release.apk** - 模拟器" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 文件大小:" >> $GITHUB_STEP_SUMMARY
-        ls -lh build/app/outputs/apk/release/*.apk | while read line; do
+        ls -lh build/app/outputs/apk/production/release/*.apk | while read line; do
           echo "- $line" >> $GITHUB_STEP_SUMMARY
         done
         
