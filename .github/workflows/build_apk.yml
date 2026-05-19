@@ -71,19 +71,24 @@ jobs:
         fi
         rm -rf v2ray-android-arm64.zip ./temp-arm64
         
-        # armeabi-v7a
+        # armeabi-v7a（可选，如果下载失败则跳过）
         echo "下载 armeabi-v7a 版本..."
-        curl -L -o v2ray-android-arm32.zip "$BASE_URL/v2ray-android-arm32-v7a.zip"
-        unzip -o v2ray-android-arm32.zip -d ./temp-arm32
-        if [ -f ./temp-arm32/v2ray ]; then
-          mv ./temp-arm32/v2ray android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
-          chmod +x android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
-          echo "✓ armeabi-v7a v2ray 已安装"
+        if curl -L -o v2ray-android-arm32.zip "$BASE_URL/v2ray-android-arm32-v7a.zip" 2>/dev/null; then
+          if unzip -o v2ray-android-arm32.zip -d ./temp-arm32 2>/dev/null; then
+            if [ -f ./temp-arm32/v2ray ]; then
+              mv ./temp-arm32/v2ray android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
+              chmod +x android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
+              echo "✓ armeabi-v7a v2ray 已安装"
+            else
+              echo "⚠ 未找到 v2ray 文件，跳过 armeabi-v7a"
+            fi
+          else
+            echo "⚠ 解压失败，跳过 armeabi-v7a"
+          fi
+          rm -rf v2ray-android-arm32.zip ./temp-arm32
         else
-          echo "✗ 未找到 v2ray 文件"
-          exit 1
+          echo "⚠ 下载失败，跳过 armeabi-v7a（某些v2ray版本可能不提供32位ARM支持）"
         fi
-        rm -rf v2ray-android-arm32.zip ./temp-arm32
         
         # 下载 GeoIP/GeoSite
         curl -L -o android/app/src/main/assets/geoip.dat \
