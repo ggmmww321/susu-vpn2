@@ -125,26 +125,52 @@ class _HomeTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.error.withOpacity(0.3)),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.error_outline, color: AppColors.error, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            vpn.errorMessage,
-                            style: const TextStyle(
-                              color: AppColors.error,
-                              fontSize: 13,
+                        Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '连接失败',
+                                style: const TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: AppColors.error, size: 18),
+                              onPressed: () {
+                                // 清除错误状态
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          vpn.errorMessage,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: AppColors.error, size: 18),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
                           onPressed: () {
-                            // 清除错误状态
+                            _showDiagnosticDialog(context);
                           },
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.bug_report, size: 16),
+                          label: const Text('查看诊断信息'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          ),
                         ),
                       ],
                     ),
@@ -222,6 +248,86 @@ class _HomeTab extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  void _showDiagnosticDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.bug_report, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('VPN连接诊断'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '如果VPN无法连接，请检查以下事项：',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _buildCheckItem('1. v2ray核心是否正确安装'),
+              _buildCheckItem('   - 查看构建日志确认v2ray下载成功'),
+              _buildCheckItem('   - APK中应包含 libv2ray.so 文件'),
+              const SizedBox(height: 8),
+              _buildCheckItem('2. 订阅地址是否有效'),
+              _buildCheckItem('   - 在设置中检查订阅URL'),
+              _buildCheckItem('   - 点击刷新按钮测试订阅'),
+              const SizedBox(height: 8),
+              _buildCheckItem('3. 节点是否可用'),
+              _buildCheckItem('   - 尝试切换其他节点'),
+              _buildCheckItem('   - 检查网络连接'),
+              const SizedBox(height: 8),
+              _buildCheckItem('4. 权限是否授予'),
+              _buildCheckItem('   - 确认已授予VPN权限'),
+              _buildCheckItem('   - 检查是否有后台运行权限'),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Text(
+                  '💡 提示：如果是首次使用，请确保从GitHub Actions下载的APK包含了v2ray核心。',
+                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheckItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontSize: 16)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

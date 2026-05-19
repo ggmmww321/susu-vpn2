@@ -99,22 +99,43 @@ class SusuVpnService : VpnService() {
 
         try {
             notifyStatus("CONNECTING")
+            Log.d(TAG, "开始启动VPN隧道...")
 
             // 1. 写出 v2ray 配置文件
             val configFile = writeConfigFile(config)
+            Log.d(TAG, "配置文件已写入: $configFile")
 
             // 2. 启动前台通知
             startForeground(NOTIFICATION_ID, buildNotification(nodeName, "连接中..."))
 
-            // 3. 启动 v2ray-core 进程
-            startV2rayCore(configFile)
-
-            // 4. 等待 v2ray 本地端口就绪
-            if (!waitForPort(LOCAL_SOCKS_PORT, timeoutMs = 5000)) {
-                throw RuntimeException("v2ray 核心启动超时")
+            // 3. 检查 v2ray 二进制文件是否存在
+            val v2rayBin = applicationInfo.nativeLibraryDir + "/libv2ray.so"
+            Log.d(TAG, "v2ray 二进制路径: $v2rayBin")
+            val v2rayFile = java.io.File(v2rayBin)
+            if (!v2rayFile.exists()) {
+                throw RuntimeException("v2ray 核心文件不存在: $v2rayBin")
             }
+            if (!v2rayFile.canExecute()) {
+                Log.w(TAG, "v2ray 文件不可执行，尝试设置执行权限")
+                v2rayFile.setExecutable(true)
+            }
+            Log.d(TAG, "✓ v2ray 核心文件存在且可执行")
 
-            // 5. 建立 TUN 接口
+            // 4. 启动 v2ray-core 进程
+            startV2rayCore(configFile)
+            Log.d(TAG, "v2ray 进程已启动")
+
+            // 5. 等待 v2ray 本地端口就绪
+            Log.d(TAG, "等待 v2ray SOCKS5 端口 $LOCAL_SOCKS_PORT 就绪...")
+            if (!waitForPort(LOCAL_SOCKS_PORT, timeoutMs = 10000)) {
+                val errorMsg = "v2ray 核心启动超时（10秒）\n请检查：\n1. v2ray 二进制是否正确打包\n2. 配置文件是否正确\n3. 是否有足够的权限"
+                Log.e(TAG, errorMsg)
+                throw RuntimeException(errorMsg)
+            }
+            Log.d(TAG, "✓ v2ray SOCKS5 端口已就绪")
+
+            // 6. 建立 TUN 接口
+            Log.d(TAG, "正在建立 TUN 接口...")
             val builder = Builder()
                 .setSession(nodeName)
                 .setMtu(TUN_MTU)
@@ -127,18 +148,21 @@ class SusuVpnService : VpnService() {
             builder.addDisallowedApplication(packageName)
 
             vpnInterface = builder.establish()
-                ?: throw RuntimeException("TUN 接口建立失败")
+                ?: throw RuntimeException("TUN 接口建立失败（可能用户拒绝了VPN权限）")
+            Log.d(TAG, "✓ TUN 接口已建立")
 
             isRunning = true
             notifyStatus("CONNECTED")
             updateNotification(nodeName, "已连接")
+            Log.d(TAG, "✓ VPN 连接成功")
 
-            // 6. 启动流量转发线程
+            // 7. 启动流量转发线程
             startPacketForwarding()
 
         } catch (e: Exception) {
             Log.e(TAG, "VPN启动失败: ${e.message}", e)
-            notifyStatus("DISCONNECTED")
+            val errorMessage = "VPN启动失败: ${e.message}"
+            notifyError(errorMessage)
             stopVpnTunnel()
         }
     }
@@ -261,7 +285,19 @@ class SusuVpnService : VpnService() {
     }
 
     private fun notifyStatus(status: String) {
+        Log.d(TAG, "状态变更: $status")
         statusCallback?.invoke(status)
+    }
+
+    private fun notifyError(message: String) {
+        Log.e(TAG, "错误: $message")
+        // 通过 MethodChannel 发送错误到 Flutter
+        try {
+            val intent = Intent("com.susu.vpn.ERROR").apply {
+                putExtra("error_message", message)
+            }
+            sendBroadcast(intent)
+        } catch (_: Exception) {}
     }
 
     fun getTrafficStats(): Map<String, Long> {

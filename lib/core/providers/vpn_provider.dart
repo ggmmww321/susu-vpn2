@@ -75,6 +75,7 @@ class VpnProvider extends ChangeNotifier {
 
   void _setupVpnListener() {
     _vpnChannel.setMethodCallHandler((call) async {
+      AppLogger.d('收到原生层调用: ${call.method}');
       switch (call.method) {
         case 'onStatusChanged':
           _handleStatusChange(call.arguments as String);
@@ -82,6 +83,8 @@ class VpnProvider extends ChangeNotifier {
         case 'onError':
           _handleError(call.arguments as String);
           break;
+        default:
+          AppLogger.w('未知的方法调用: ${call.method}');
       }
     });
   }
@@ -138,6 +141,7 @@ class VpnProvider extends ChangeNotifier {
       // 生成V2Ray配置
       AppLogger.d('生成V2Ray配置');
       final config = V2rayConfigBuilder.toJsonString(node);
+      AppLogger.d('配置长度: ${config.length} 字符');
 
       // 调用Android原生VPN Service，添加超时处理
       AppLogger.vpn('启动VPN服务...');
@@ -149,23 +153,26 @@ class VpnProvider extends ChangeNotifier {
       }).timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          throw Exception('连接超时，请检查网络或节点状态');
+          throw Exception('连接超时（30秒），请检查：\n1. 网络连接是否正常\n2. 节点是否可用\n3. v2ray核心是否正确安装');
         },
       );
 
       if (result == false) {
         AppLogger.e('启动VPN服务失败');
         _status = VpnStatus.error;
-        _errorMessage = '启动VPN服务失败';
+        _errorMessage = '启动VPN服务失败，请检查v2ray核心是否正确安装';
         _currentNode = null;
         notifyListeners();
       } else {
-        AppLogger.vpn('VPN服务启动成功');
+        AppLogger.vpn('VPN服务启动成功，等待连接...');
       }
     } on PlatformException catch (e) {
       AppLogger.e('PlatformException: ${e.message}', e);
       _status = VpnStatus.error;
       _errorMessage = e.message ?? '连接失败';
+      if (e.details != null) {
+        _errorMessage += '\n详情: ${e.details}';
+      }
       _currentNode = null;
       notifyListeners();
     } on TimeoutException catch (_) {

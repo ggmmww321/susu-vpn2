@@ -56,16 +56,34 @@ jobs:
         BASE_URL="https://github.com/v2fly/v2ray-core/releases/download/v$V2RAY_VERSION"
         
         # arm64-v8a
-        curl -L -o v2ray-linux-arm64.zip "$BASE_URL/v2ray-linux-arm64-v8a.zip"
-        unzip -o v2ray-linux-arm64.zip -d ./temp-arm64
-        find ./temp-arm64 -name "v2ray" -type f -exec mv {} android/app/src/main/jniLibs/arm64-v8a/libv2ray.so \;
-        rm -rf v2ray-linux-arm64.zip ./temp-arm64
+        echo "下载 arm64-v8a 版本..."
+        curl -L -o v2ray-android-arm64.zip "$BASE_URL/v2ray-android-arm64-v8a.zip"
+        unzip -o v2ray-android-arm64.zip -d ./temp-arm64
+        ls -la ./temp-arm64 || true
+        find ./temp-arm64 -type f | head -20 || true
+        if [ -f ./temp-arm64/v2ray ]; then
+          mv ./temp-arm64/v2ray android/app/src/main/jniLibs/arm64-v8a/libv2ray.so
+          chmod +x android/app/src/main/jniLibs/arm64-v8a/libv2ray.so
+          echo "✓ arm64-v8a v2ray 已安装"
+        else
+          echo "✗ 未找到 v2ray 文件"
+          exit 1
+        fi
+        rm -rf v2ray-android-arm64.zip ./temp-arm64
         
         # armeabi-v7a
-        curl -L -o v2ray-linux-arm32.zip "$BASE_URL/v2ray-linux-arm32-v7a.zip"
-        unzip -o v2ray-linux-arm32.zip -d ./temp-arm32
-        find ./temp-arm32 -name "v2ray" -type f -exec mv {} android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so \;
-        rm -rf v2ray-linux-arm32.zip ./temp-arm32
+        echo "下载 armeabi-v7a 版本..."
+        curl -L -o v2ray-android-arm32.zip "$BASE_URL/v2ray-android-arm32-v7a.zip"
+        unzip -o v2ray-android-arm32.zip -d ./temp-arm32
+        if [ -f ./temp-arm32/v2ray ]; then
+          mv ./temp-arm32/v2ray android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
+          chmod +x android/app/src/main/jniLibs/armeabi-v7a/libv2ray.so
+          echo "✓ armeabi-v7a v2ray 已安装"
+        else
+          echo "✗ 未找到 v2ray 文件"
+          exit 1
+        fi
+        rm -rf v2ray-android-arm32.zip ./temp-arm32
         
         # 下载 GeoIP/GeoSite
         curl -L -o android/app/src/main/assets/geoip.dat \
