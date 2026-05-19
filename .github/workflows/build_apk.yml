@@ -86,6 +86,14 @@ jobs:
       run: |
         flutter build apk --release --split-per-abi -v
         
+    - name: 检查 APK 文件
+      run: |
+        echo "检查 build 目录结构:"
+        find build -name "*.apk" -type f || echo "未找到 APK 文件"
+        echo ""
+        echo "完整目录列表:"
+        ls -R build/app/outputs/ || echo "outputs 目录不存在"
+        
     - name: 上传 APK 工件
       uses: actions/upload-artifact@v4
       with:
