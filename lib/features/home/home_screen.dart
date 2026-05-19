@@ -295,9 +295,29 @@ class _HomeTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.blue.shade200),
                 ),
-                child: const Text(
-                  '💡 提示：如果是首次使用，请确保从GitHub Actions下载的APK包含了v2ray核心。',
-                  style: TextStyle(fontSize: 12, color: Colors.blue),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '💡 提示：',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '如果是首次使用，请确保从GitHub Actions下载的APK包含了v2ray核心。',
+                      style: TextStyle(fontSize: 12, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '📱 获取详细日志：',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '连接电脑后执行：adb logcat | findstr "SusuVpnService"',
+                      style: TextStyle(fontSize: 11, color: Colors.blue, fontFamily: 'monospace'),
+                    ),
+                  ],
                 ),
               ),
             ],
