@@ -84,7 +84,7 @@ jobs:
         
     - name: 构建 APK
       run: |
-        flutter build apk --release --split-per-abi
+        flutter build apk --release --split-per-abi -v
         
     - name: 上传 APK 工件
       uses: actions/upload-artifact@v4
