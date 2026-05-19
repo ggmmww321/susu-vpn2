@@ -98,7 +98,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: susu-vpn-apk
-        path: build/app/outputs/apk/production/release/app-production-release.apk
+        path: build/app/outputs/flutter-apk/app-production-release.apk
         retention-days: 90
         
     - name: 生成构建报告
@@ -111,7 +111,7 @@ jobs:
         echo "- **app-production-release.apk** - 通用APK (支持所有架构)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 文件大小:" >> $GITHUB_STEP_SUMMARY
-        ls -lh build/app/outputs/apk/production/release/app-production-release.apk | while read line; do
+        ls -lh build/app/outputs/flutter-apk/app-production-release.apk | while read line; do
           echo "- $line" >> $GITHUB_STEP_SUMMARY
         done
         
